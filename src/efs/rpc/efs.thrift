@@ -24,13 +24,13 @@ enum WriteMode {
     Append = 2
 }
 
-service NameNode {
+service NameNodeService {
     list<ReadMetaData> get_read_meta(1:string path, 2:i64 offset, 3:i64 length),
     list<WriteMetaData> get_write_meta(1:string path, 2:WriteMode mode),
     bool confirm_write(1:i64 id, 2:WriteMode mode, 3:i64 length)
 }
 
-service DataNode {
+service DataNodeService {
     /**
      * block_id: 要读取的数据块id
      * offset: 要开始读取的位置(相对与该文件块)
