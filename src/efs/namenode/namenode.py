@@ -7,27 +7,32 @@ from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer
 import sys
 import os
+from efs.namenode.editlog import EditLog
 
-BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../..")
-sys.path.append(BASE_DIR)
-print(BASE_DIR)
+from efs.namenode.metadata import MetaData
 
-from config import OPENIP, NAMENODE_PORT, DATANODE_PORT,NAMENODE_THREADS
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+
+from config import OPENIP, NAMENODE_PORT, DATANODE_PORT,NAMENODE_THREADS, EDITLOG_DIR
 import efs.rpc.efs as rpc
 from efs.rpc.efs.ttypes import *
 
 class NameNode(threading.Thread):
     
-    def __init__(self, host=OPENIP, port=NAMENODE_PORT, threads=NAMENODE_THREADS) -> None:
+    def __init__(self, host=OPENIP, port=NAMENODE_PORT, threads=NAMENODE_THREADS, editlog_dir=EDITLOG_DIR) -> None:
         threading.Thread.__init__(self)
         self.host = host
         self.port = port
         self.threads = threads
+        self.edit_log = EditLog(editlog_dir)
+        self.meta = MetaData(self.edit_log)
         
         
     def get_read_meta(self,path, offset, length):
-        print("process get_read_meta!")
-        return []
+        blocks = self.meta.get_blocks(path, offset, length)
+        return [ReadMetaData(**block) for block in blocks]
     
     def get_write_meta(self, path, mode):
         print("process get_write_meta!")
@@ -36,7 +41,6 @@ class NameNode(threading.Thread):
     def confirm_write(self, id, mode, length):
         print("process confirm_write!")
         return True
-    
     
     def run(self):
         processor = rpc.NameNodeService.Processor(self)
